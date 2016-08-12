@@ -11,7 +11,7 @@ WKP| - | D7 | -
 DAC| - | D6 | -
 A5| - | D5 | -
 A4| - | D4 | -
-A3| - | D3 | -
+A3| - | D3 | MOSHI test
 A2| - | D2 | -
 A1| - | D1 | -
 A0| - | D0 | DHT22
@@ -30,7 +30,8 @@ pin | Function
 4 | GND
 
 ### [SX1509 I/O Expander Breakout BoB 13601](https://www.sparkfun.com/products/13601)
-![](https://cdn.sparkfun.com//assets/parts/1/0/9/5/6/13601-01.jpg)
+
+<img src="https://cdn.sparkfun.com//assets/parts/1/0/9/5/6/13601-01.jpg" width="20%"/>
 
 **Description**: Are you low on I/O? No problem! The SX1509 Breakout is a 16-channel GPIO expander with an I2C interface – that means with just two wires, your microcontroller can interface with 16 fully configurable digital input/output pins. But the SX1509 can do so much more than just simple digital pin control. It can produce PWM signals, so you can dim LEDs. It can be set to blink or even breathe pins at varying rates. And, with a built-in keypad engine, it can interface with up to 64 buttons set up in an 8x8 matrix.
 
