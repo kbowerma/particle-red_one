@@ -24,7 +24,7 @@
 
     // DHT parameters
   #define DHTPIN 0
-  #define DHTTYPE DHT11
+  #define DHTTYPE DHT22
 
   int DIN1 = D1;
   int DIN2 = D2;
