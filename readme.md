@@ -2,7 +2,7 @@
 this is on P1 redboard from sparkfun so I have modified the master make file and adpated the ```build``` to a new ```p1build``` which includes ```PLATFORM=P1 PRODUCT_ID=8 ```.  You have to remember to do a ```make clean``` if you forget and do just a ```make build``` instead of a ```make p1build```
 
 pin | Function | pin | Function
-----| ------- ----| -------
+----| ------- | ----| -------
 VIN| - | 3v3 | -
 GND| - | RST | -
 Tx| - | VBAT | -
