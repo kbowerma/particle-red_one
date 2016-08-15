@@ -12,14 +12,16 @@ DAC| - | D6 | -
 A5| - | D5 | -
 A4| - | D4 | -
 A3| - | D3 | MOSHI test
-A2| - | D2 | -
-A1| - | D1 | -
-A0| - | D0 | DHT22
+A2| - | D2 | DHT22
+A1| - | D1 | SX1509 SCL
+A0| - | D0 | SX1509 SDA
 
 
 ## Components
 ### DHT-22
 [RHT03 aka DHT-2](http://cdn.sparkfun.com/datasheets/Sensors/Weather/RHT03.pdf)  and [Sparkfun link](https://www.sparkfun.com/products/10167)
+
+
 
 
 pin | Function
@@ -38,3 +40,5 @@ pin | Function
 Two headers at the top and bottom of the breakout board function as the input and control headers to the board. This is where you can supply power to the SX1509, and where your I2C signals – SDA and SCL – will terminate. GPIO and power buses are broken out in every-which direction, and configurable jumpers cover most of the rest of the board.
 
 Since the I/O banks can operate between 1.2V and 3.6V (5.5V tolerant) independent of both the core and each other, this device can also work as a level-shifter. The SX1509 breakout makes it easy to prototype so you can add more I/O onto your Arduino or I/O limited controller. We’ve even spun up an Arduino Library to get you started!
+
+[Particle Ported Library](https://github.com/JohnVidler/SparkFun_SX1509_Arduino_Library)

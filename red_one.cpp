@@ -12,22 +12,26 @@
       + renamed from raptor-garden
       + Add DHT temp and humidty reading
   8.12.2016  porting to Red One
+  8.15 setting up SX1509, working well.
 
 
 
 */
-
+// includes
 #include "red_one.h"
    //#include "HttpClient/HttpClient.h"  //for web ide
   #include "lib/HttpClient/firmware/HttpClient.h"  // for local build
   #include "lib/Adafruit_DHT_Library/firmware/Adafruit_DHT.h"
+  #include "lib/SparkFun_SX1509_Arduino_Library/firmware/SparkFunSX1509.h"
 
-    // DHT parameters
-  #define DHTPIN 0
-  #define DHTTYPE DHT22
 
-  int DIN1 = D1;
-  int DIN2 = D2;
+
+   // SX1509 I2C address (set by ADDR1 and ADDR0 (00 by default):
+  const byte SX1509_ADDRESS = 0x3E;  // SX1509 I2C address
+  SX1509 io; // Create an SX1509 object to be used throughout
+  const byte SX1509_PIN = 0;
+
+//declrations
   int DIN3 = D3;
   int DIN4 = D4;
   int DIN5 = D5;
@@ -37,9 +41,15 @@
   String temperatureString;
   int humidity;
   String humidityString;
+
+  //prototypes
   int relayOn(String command);
   int relayOff(String command);
   int pinState(String command);
+  int getDHT(String command);
+  int ioOn(String command);
+  int ioOff(String command);
+  int ioRead(String command);
 
 
   HttpClient http;
@@ -57,16 +67,14 @@
   DHT dht(DHTPIN, DHTTYPE);
   //Timer timer(10000, publishTempandHumidity);
 
-
-
 void setup() {
 
   // Start DHT sensor
   dht.begin();
   //timer.start();
 
-  pinMode(DIN1, OUTPUT);
-  pinMode(DIN2, OUTPUT);
+  //pinMode(DIN1, OUTPUT); SCL
+  //pinMode(DIN2, OUTPUT); DHT
   pinMode(DIN3, OUTPUT);
   pinMode(DIN4, OUTPUT);
   pinMode(DIN5, OUTPUT);
@@ -87,6 +95,10 @@ void setup() {
  Particle.function("relayon", relayOn) ;
  Particle.function("relayoff", relayOff);
  Particle.function("pinState", pinState);
+ Particle.function("getdht", getDHT);
+ Particle.function("ioon", ioOn);
+ Particle.function("ioread", ioRead);
+ Particle.function("iooff", ioOff);
  Particle.variable("file",FILENAME, STRING);
  Particle.variable("version",VERSION, STRING);
  Particle.variable("temperature", temperatureString );
@@ -95,23 +107,35 @@ void setup() {
  Particle.variable("firmware", myVersion);
 
 
- // http://sailpipe-dev.herokuapp.com/device/create?name=photon&data=12.3
+
   request.hostname = "sailpipe-dev.herokuapp.com";
   request.port = 80;
- // request.path = "/device/create"
- // request.path = "/device/create?name=photon&data=12.3&desc=fromDeviceInloop&type=data";
-  // http.get(request, response, headers);
+
+  //SX1509 setup
+    // Call io.begin(<address>) to initialize the SX1509. If it
+    // successfully communicates, it'll return 1.
+    if (!io.begin(SX1509_ADDRESS))
+    {
+    while (1) ; // If we fail to communicate, loop forever.
+    }
+
+    // Call io.pinMode(<pin>, <mode>) to set an SX1509 pin as an output:
+    io.pinMode(SX1509_PIN, OUTPUT);
+
 
 }
-
 void loop() {
     request.path = "/device/create";  // I have to put this in the loop becuase the path conatins the data
 
 
-// handmad 5 minute interval timer
-if ( millis() % 300000 == 0 ) {
-  publishTempandHumidity();
-}
+ // handmad 5 minute interval timer
+  if ( millis() % 300000 == 0 ) {
+    publishTempandHumidity();
+  }
+  //io.digitalWrite(SX1509_PIN, HIGH);
+  //delay(5000);
+  //io.digitalWrite(SX1509_PIN, LOW);
+  //delay(5000);
 
 }
 
@@ -129,20 +153,47 @@ void publishTempandHumidity() {
   Particle.publish("humidity", String(humidity) + "%");
 
 }
+int ioOn(String command) {
+  io.digitalWrite(command.toInt(), HIGH);
+  return io.digitalRead(command.toInt());
+}
+int ioOff(String command) {
+  io.digitalWrite(command.toInt(), LOW);
+  return io.digitalRead(command.toInt());
+}
+int ioRead(String command) {
+   int myvalue = io.digitalRead(command.toInt());
+  return myvalue;
+}
+int getDHT(String command) {
+  if (command == "t") {
+      temperature = dht.getTempFarenheit();
+      temperatureString = String(temperature);
+      Particle.publish("temperature", String(temperature) + " °F");
+      return temperature;
+  }
+  else if (command =="h") {
+    humidity = dht.getHumidity();
+    humidityString = String(humidity);
+    Particle.publish("humidity", String(humidity) + "%");
+    return humidity;
 
+  }
+  else {
+    return 0;
+  }
+
+}
 int pinState(String command){
     return digitalRead(command.toInt());
 
 }
-
 int relayOn(String command) {
     Particle.publish("relay ON pin", command);   //publish even to particle cloud
     request.path = String("/device/create?type=event&desc=relay%20ON&name=red_one&data=" + command );
      http.get(request, response, headers);
       // Particle.publish("DEBUG",  request.path);
       // Particle.publish("mresponse",  response.body); //DEBUG
-
-
     if(command != "all") {
         digitalWrite(command.toInt(), HIGH);
         return 1;
@@ -155,7 +206,6 @@ int relayOn(String command) {
     }
     else return -1;
 }
-
 int relayOff(String command) {
     Particle.publish("relay off pin", command);
     request.path = String("/device/create?type=event&desc=relay%20Off&name=red_one&data=" + command );
