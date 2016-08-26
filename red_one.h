@@ -19,6 +19,11 @@
   String temperatureString;
   int humidity;
   String humidityString;
+  int myosc = 0;
+  bool isOscUP = true;
+
+  bool isHigh = false;
+  bool isHigh2 = false;
 
 //prototypes
   int relayOn(String command);

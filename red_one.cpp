@@ -46,6 +46,7 @@ void setup() {
   pinMode(DIN5, OUTPUT);
   pinMode(DIN6, OUTPUT);
   pinMode(DIN7, OUTPUT);
+  pinMode(A4, OUTPUT);
 
   Serial.begin(9600);
   IPAddress myIP = WiFi.localIP();
@@ -91,6 +92,8 @@ void setup() {
     io.pinMode(0, OUTPUT);  //Using pin 0
     io.digitalWrite(0, LOW);  // something is setting it high at boot
 
+    io.pinMode(1, OUTPUT);
+    io.pinMode(0, OUTPUT);
 
 }
 void loop() {
@@ -101,6 +104,49 @@ void loop() {
   if ( millis() % 600000 == 0 ) {
    publishTempandHumidity();
   }
+
+  if ( millis() % 10 == 0 ) {
+    if (isHigh ) {
+
+      //digitalWrite(DIN7, LOW);
+    //  analogWrite(A4, 0);
+      io.digitalWrite(0, LOW);
+
+
+   isHigh = false;
+    }
+    else {
+
+      //digitalWrite(DIN7, HIGH);
+      //analogWrite(A4, 255 );
+      io.digitalWrite(0, HIGH);
+
+    isHigh = true;
+    }
+  }
+  //int myosc = 0;
+  //bool isOscUP = true;
+  if (isOscUP) {
+    analogWrite(A4, myosc);
+    myosc++;
+    if (myosc == 255 ) {
+      myosc = 0;
+    }
+  }
+
+
+/*
+  if ( millis() % 20 == 1 ) {
+    if (isHigh2 ) {
+   io.digitalWrite(0, LOW);
+   isHigh2 = false;
+    }
+    else {
+    io.digitalWrite(0, HIGH);
+    isHigh2 = true;
+    }
+  }
+*/
 
 
 }
