@@ -46,7 +46,7 @@ void setup() {
   pinMode(DIN5, OUTPUT);
   pinMode(DIN6, OUTPUT);
   pinMode(DIN7, OUTPUT);
-  pinMode(A4, OUTPUT);
+  pinMode(A3, OUTPUT);
 
   Serial.begin(9600);
   IPAddress myIP = WiFi.localIP();
@@ -105,38 +105,45 @@ void loop() {
    publishTempandHumidity();
   }
 
+/*
   if ( millis() % 10 == 0 ) {
     if (isHigh ) {
-
       //digitalWrite(DIN7, LOW);
     //  analogWrite(A4, 0);
       io.digitalWrite(0, LOW);
-
-
    isHigh = false;
     }
     else {
-
       //digitalWrite(DIN7, HIGH);
       //analogWrite(A4, 255 );
       io.digitalWrite(0, HIGH);
-
     isHigh = true;
     }
   }
-  //int myosc = 0;
-  //bool isOscUP = true;
+*/
+
+// Dac2 osilator
   if (isOscUP) {
-    analogWrite(A4, myosc);
-    myosc++;
-    if (myosc == 255 ) {
-      myosc = 0;
+
+    analogWrite(A3, myosc);
+    //myosc++;
+    myosc = myosc + 1;
+    if (myosc == 4096 ) {
+      isOscUP = 0;
     }
-  }
+  }  else {
+    analogWrite(A3, myosc );
+      myosc = myosc - 1;
+       if (myosc == 0 ) {
+        isOscUP = 1;
+      }
+    }
+
 
 
 /*
-  if ( millis() % 20 == 1 ) {
+
+  if ( millis() % 100 == 1 ) {
     if (isHigh2 ) {
    io.digitalWrite(0, LOW);
    isHigh2 = false;
@@ -148,8 +155,8 @@ void loop() {
   }
 */
 
-
 }
+
 
 void publishTempandHumidity() {
  getDHT("t");
