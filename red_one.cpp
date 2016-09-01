@@ -12,52 +12,26 @@
       + renamed from raptor-garden
       + Add DHT temp and humidty reading
   8.12.2016  porting to Red One
+  8.15 + setting up SX1509, working well.
+      + moving everyhting to header file
 
 
 
 */
-
-#include "red_one.h"
-   //#include "HttpClient/HttpClient.h"  //for web ide
-  #include "lib/HttpClient/firmware/HttpClient.h"  // for local build
+// includes
+#include "application.h"
+  #include "red_one.h"
   #include "lib/Adafruit_DHT_Library/firmware/Adafruit_DHT.h"
+  #include "lib/SparkFun_SX1509_Arduino_Library/firmware/SparkFunSX1509.h"
 
-    // DHT parameters
-  #define DHTPIN 0
-  #define DHTTYPE DHT22
-
-  int DIN1 = D1;
-  int DIN2 = D2;
-  int DIN3 = D3;
-  int DIN4 = D4;
-  int DIN5 = D5;
-  int DIN6 = D6;
-  int DIN7 = D7;
-  int temperature;
-  String temperatureString;
-  int humidity;
-  String humidityString;
-  int relayOn(String command);
-  int relayOff(String command);
-  int pinState(String command);
+  // SX1509 I2C address (set by ADDR1 and ADDR0 (00 by default):
+  const byte SX1509_ADDRESS = 0x3E;  // SX1509 I2C address
+  SX1509 io; // Create an SX1509 object to be used throughout
 
 
-  HttpClient http;
-    // Headers currently need to be set at init, useful for API keys etc.
-    http_header_t headers[] = {
-        //  { "Content-Type", "application/json" },
-        //  { "Accept" , "application/json" },
-        { "Accept" , "*/*"},
-        { NULL, NULL } // NOTE: Always terminate headers will NULL
-    };
-
-    http_request_t request;
-    http_response_t response;
   // DHT sensor
   DHT dht(DHTPIN, DHTTYPE);
-  //Timer timer(10000, publishTempandHumidity);
-
-
+  //Timer timer(30000, publishTempandHumidity);  // can't do a publish on with a timer
 
 void setup() {
 
@@ -65,8 +39,8 @@ void setup() {
   dht.begin();
   //timer.start();
 
-  pinMode(DIN1, OUTPUT);
-  pinMode(DIN2, OUTPUT);
+  //pinMode(DIN1, OUTPUT); SCL
+  //pinMode(DIN2, OUTPUT); DHT
   pinMode(DIN3, OUTPUT);
   pinMode(DIN4, OUTPUT);
   pinMode(DIN5, OUTPUT);
@@ -82,11 +56,19 @@ void setup() {
 
   String myVersion = System.version().c_str();
   Particle.publish("Version", myVersion, 60,PRIVATE);
+  Particle.publish("rssi", String( WiFi.RSSI()), 60, PRIVATE);
+  Particle.publish("ssid", String( WiFi.SSID()), 60, PRIVATE);
 
 
  Particle.function("relayon", relayOn) ;
  Particle.function("relayoff", relayOff);
  Particle.function("pinState", pinState);
+ Particle.function("getdht", getDHT);
+ Particle.function("ioon", ioOn);
+ Particle.function("ioread", ioRead);
+ Particle.function("iooutmode", ioOutMode);
+ Particle.function("ioinmode", ioInMode);
+ Particle.function("iooff", ioOff);
  Particle.variable("file",FILENAME, STRING);
  Particle.variable("version",VERSION, STRING);
  Particle.variable("temperature", temperatureString );
@@ -95,54 +77,95 @@ void setup() {
  Particle.variable("firmware", myVersion);
 
 
- // http://sailpipe-dev.herokuapp.com/device/create?name=photon&data=12.3
+
   request.hostname = "sailpipe-dev.herokuapp.com";
   request.port = 80;
- // request.path = "/device/create"
- // request.path = "/device/create?name=photon&data=12.3&desc=fromDeviceInloop&type=data";
-  // http.get(request, response, headers);
+
+  //SX1509 setup
+    // Call io.begin(<address>) to initialize the SX1509. If it
+    // successfully communicates, it'll return 1.
+    if (!io.begin(SX1509_ADDRESS))
+    {
+    while (1) ; // If we fail to communicate, loop forever.
+    }
+
+    // Call io.pinMode(<pin>, <mode>) to set an SX1509 pin as an output:
+    io.pinMode(0, OUTPUT);  //Using pin 0
+    io.digitalWrite(0, LOW);  // something is setting it high at boot
+
 
 }
-
 void loop() {
     request.path = "/device/create";  // I have to put this in the loop becuase the path conatins the data
 
 
-// handmad 5 minute interval timer
-if ( millis() % 300000 == 0 ) {
-  publishTempandHumidity();
-}
+ // handmad 5 minute interval timer
+  if ( millis() % 600000 == 0 ) {
+   publishTempandHumidity();
+  }
+
 
 }
 
 void publishTempandHumidity() {
-  // Humidity measurement
-  temperature = dht.getTempFarenheit();
-  temperatureString = String(temperature);
-  // temperature = dht.getTempCelcius();
-   delay(4000);
-  // Humidity measurement
-  humidity = dht.getHumidity();
-  humidityString = String(humidity);
-  Particle.publish("temperature", String(temperature) + " °F");
-  delay(4000);
-  Particle.publish("humidity", String(humidity) + "%");
+ getDHT("t");
+ getDHT("h");
+}
+int ioOn(String command) {
+  io.digitalWrite(command.toInt(), HIGH);
+  return io.digitalRead(command.toInt());
+}
+int ioOff(String command) {
+  io.digitalWrite(command.toInt(), LOW);
+  return io.digitalRead(command.toInt());
+}
+int ioRead(String command) {
+   int myvalue = io.digitalRead(command.toInt());
+  return myvalue;
+}
+int ioOutMode(String command) {
+   io.pinMode(command.toInt(), OUTPUT);
+  return 1;
+}
+int ioInMode(String command) {
+   io.pinMode(command.toInt(), INPUT);
+  return 1;
+}
+int getDHT(String command) {
+  if (command == "t") {
+      temperature = dht.getTempFarenheit();
+      temperatureString = String(temperature);
+      Particle.publish("temperature", String(temperature) + " °F");
+      // now write to sails
+      request.path = String("/device/create?type=sensor&desc=temperature&name=red_one&data=" + String(temperature) );
+       http.get(request, response, headers);
+      return temperature;
+  }
+  else if (command =="h") {
+    humidity = dht.getHumidity();
+    humidityString = String(humidity);
+    Particle.publish("humidity", String(humidity) + "%");
+    // now write to sails
+    request.path = String("/device/create?type=sensor&desc=humidity&name=red_one&data=" + String(humidity) );
+     http.get(request, response, headers);
+    return humidity;
+
+  }
+  else {
+    return 0;
+  }
 
 }
-
 int pinState(String command){
     return digitalRead(command.toInt());
 
 }
-
 int relayOn(String command) {
     Particle.publish("relay ON pin", command);   //publish even to particle cloud
     request.path = String("/device/create?type=event&desc=relay%20ON&name=red_one&data=" + command );
      http.get(request, response, headers);
       // Particle.publish("DEBUG",  request.path);
       // Particle.publish("mresponse",  response.body); //DEBUG
-
-
     if(command != "all") {
         digitalWrite(command.toInt(), HIGH);
         return 1;
@@ -155,7 +178,6 @@ int relayOn(String command) {
     }
     else return -1;
 }
-
 int relayOff(String command) {
     Particle.publish("relay off pin", command);
     request.path = String("/device/create?type=event&desc=relay%20Off&name=red_one&data=" + command );
