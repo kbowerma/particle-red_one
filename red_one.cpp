@@ -56,6 +56,8 @@ void setup() {
 
   String myVersion = System.version().c_str();
   Particle.publish("Version", myVersion, 60,PRIVATE);
+  Particle.publish("rssi", String( WiFi.RSSI()), 60, PRIVATE);
+  Particle.publish("ssid", String( WiFi.SSID()), 60, PRIVATE);
 
 
  Particle.function("relayon", relayOn) ;
